@@ -14,7 +14,7 @@ def main():
     # 處理固定月份日期爬蟲任務
     flight_tasks_fixed_month_processors = FlightTasksFixedMonthProcessors(config_manager, log_manager)
     # 處理節日爬蟲任務
-    flight_tasks_holidays_processors = FlightTasksHolidaysProcessors(config_manager)
+    flight_tasks_holidays_processors = FlightTasksHolidaysProcessors(config_manager, log_manager)
     
     try:
         # 從配置中獲取預定義任務

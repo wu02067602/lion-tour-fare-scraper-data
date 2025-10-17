@@ -24,6 +24,7 @@ date_calculation_api:
   timeout: 10
   endpoints:
     calculate_dates: "/calculate_dates"
+    calculate_holiday_dates: "/calculate_holiday_dates"
 
 # 重試策略
 retry:

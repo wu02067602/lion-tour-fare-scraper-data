@@ -51,6 +51,7 @@ class DateCalculationService:
         self.timeout = api_config.get('timeout', 10)
         endpoints = api_config.get('endpoints', {})
         self.calculate_dates_endpoint = endpoints.get('calculate_dates', '/calculate_dates')
+        self.calculate_holiday_dates_endpoint = endpoints.get('calculate_holiday_dates', '/calculate_holiday_dates')
 
     def calculate_dates(self, month_offset: int, dep_day: int, return_day: int) -> Optional[Dict]:
         """
@@ -136,4 +137,93 @@ class DateCalculationService:
             return None
         except Exception as e:
             self.log_manager.log_error(f"日期計算服務發生未預期的錯誤: {e}", e)
+            return None
+
+    def calculate_holiday_dates(self, month_offset: int) -> Optional[Dict]:
+        """
+        計算節日航班日期
+        
+        透過呼叫日期計算 API 來計算指定月份的節日及其出發和回程日期。
+        
+        參數:
+            month_offset (int): 月份偏移量（從當前月份開始計算幾個月後）
+            
+        返回:
+            Optional[Dict]: 包含計算結果的字典，格式如下：
+                {
+                    "target_year": 2025,
+                    "target_month": 12,
+                    "holidays": [
+                        {
+                            "holiday_name": "行憲紀念日",
+                            "holiday_date": "2025-12-25",
+                            "departure_date": "2025-12-21",
+                            "return_date": "2025-12-25",
+                            "weekday": "四"
+                        }
+                    ]
+                }
+                如果 API 呼叫失敗則返回 None
+                
+        異常:
+            requests.exceptions.RequestException: 當 API 請求失敗時
+        """
+        url = f"{self.base_url}{self.calculate_holiday_dates_endpoint}"
+        payload = {
+            "month_offset": month_offset
+        }
+        
+        self.log_manager.log_info(
+            f"正在呼叫節日日期計算 API: {url}，參數: month_offset={month_offset}"
+        )
+        
+        try:
+            response = requests.post(
+                url,
+                json=payload,
+                timeout=self.timeout,
+                headers={"Content-Type": "application/json"}
+            )
+            
+            # 檢查 HTTP 狀態碼
+            if response.status_code == 200:
+                result = response.json()
+                if result.get('success'):
+                    data = result.get('data', {})
+                    holidays_count = len(data.get('holidays', []))
+                    self.log_manager.log_info(
+                        f"成功獲取節日日期計算結果: 目標年月={data.get('target_year')}-{data.get('target_month'):02d}, "
+                        f"節日數量={holidays_count}"
+                    )
+                    return data
+                else:
+                    error_msg = result.get('error', '未知錯誤')
+                    self.log_manager.log_error(f"節日日期計算 API 返回錯誤: {error_msg}")
+                    return None
+            elif response.status_code == 400:
+                error_data = response.json()
+                error_msg = error_data.get('error', '請求參數錯誤')
+                self.log_manager.log_error(f"節日日期計算 API 請求參數錯誤: {error_msg}")
+                return None
+            else:
+                self.log_manager.log_error(
+                    f"節日日期計算 API 返回異常狀態碼: {response.status_code}, "
+                    f"響應內容: {response.text}"
+                )
+                return None
+                
+        except requests.exceptions.Timeout as e:
+            self.log_manager.log_error(f"節日日期計算 API 請求超時: {e}", e)
+            return None
+        except requests.exceptions.ConnectionError as e:
+            self.log_manager.log_error(f"無法連接到節日日期計算 API: {e}", e)
+            return None
+        except requests.exceptions.RequestException as e:
+            self.log_manager.log_error(f"呼叫節日日期計算 API 時發生錯誤: {e}", e)
+            return None
+        except json.JSONDecodeError as e:
+            self.log_manager.log_error(f"解碼節日日期計算 API 響應失敗: {e.msg}", e)
+            return None
+        except Exception as e:
+            self.log_manager.log_error(f"節日日期計算服務發生未預期的錯誤: {e}", e)
             return None

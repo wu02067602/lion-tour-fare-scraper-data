@@ -18,6 +18,12 @@ api:
     sec-fetch-mode: "cors"
     sec-fetch-site: "same-origin"
 
+# 日期計算 API 設置
+date_calculation_api:
+  base_url: "http://localhost:8000"
+  timeout: 10
+  endpoints:
+    calculate_dates: "/calculate_dates"
 
 # 重試策略
 retry:

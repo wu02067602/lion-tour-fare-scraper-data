@@ -9,9 +9,10 @@ def main():
     """
     controller = DataAcquisitionController()
     config_manager = controller.config_manager
+    log_manager = controller.log_manager
 
     # 處理固定月份日期爬蟲任務
-    flight_tasks_fixed_month_processors = FlightTasksFixedMonthProcessors(config_manager)
+    flight_tasks_fixed_month_processors = FlightTasksFixedMonthProcessors(config_manager, log_manager)
     # 處理節日爬蟲任務
     flight_tasks_holidays_processors = FlightTasksHolidaysProcessors(config_manager)
     

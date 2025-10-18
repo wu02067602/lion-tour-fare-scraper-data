@@ -135,9 +135,6 @@ class DateCalculationService:
         except json.JSONDecodeError as e:
             self.log_manager.log_error(f"解碼日期計算 API 響應失敗: {e.msg}", e)
             return None
-        except Exception as e:
-            self.log_manager.log_error(f"日期計算服務發生未預期的錯誤: {e}", e)
-            return None
 
     def calculate_holiday_dates(self, month_offset: int) -> Optional[Dict]:
         """
@@ -223,7 +220,4 @@ class DateCalculationService:
             return None
         except json.JSONDecodeError as e:
             self.log_manager.log_error(f"解碼節日日期計算 API 響應失敗: {e.msg}", e)
-            return None
-        except Exception as e:
-            self.log_manager.log_error(f"節日日期計算服務發生未預期的錯誤: {e}", e)
             return None

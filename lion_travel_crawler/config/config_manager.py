@@ -71,6 +71,20 @@ class ConfigManager:
             
         return self.config.get('api', {})
 
+    def get_date_calculation_api_config(self):
+        """
+        獲取日期計算 API 配置
+        
+        返回日期計算 API 相關配置，包括 base_url, endpoints 等。
+        
+        返回:
+            dict: 日期計算 API 配置字典
+        """
+        if not self.config:
+            raise ValueError("配置尚未加載，請先呼叫load_config方法")
+            
+        return self.config.get('date_calculation_api', {})
+
     def get_retry_config(self):
         """
         獲取重試配置

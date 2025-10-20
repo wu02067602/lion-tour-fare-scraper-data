@@ -1,12 +1,32 @@
 from config.config_manager import ConfigManager
-from datetime import datetime
-import calendar
-from typing import Dict, List
+from services.date_calculation_service import DateCalculationService
+from utils.log_manager import LogManager
+from typing import Dict, List, Optional
 import copy
 
 class FlightTasksFixedMonthProcessors:
-    def __init__(self, config_manager: ConfigManager):
+    """
+    固定月份航班任務處理器
+    
+    負責處理固定月份日期的航班爬蟲任務，透過日期計算服務獲取日期資訊。
+    
+    屬性:
+        config_manager (ConfigManager): 配置管理器實例
+        log_manager (LogManager): 日誌管理器實例
+        date_calculation_service (DateCalculationService): 日期計算服務實例
+    """
+    
+    def __init__(self, config_manager: ConfigManager, log_manager: LogManager):
+        """
+        初始化固定月份航班任務處理器
+        
+        參數:
+            config_manager (ConfigManager): 配置管理器實例
+            log_manager (LogManager): 日誌管理器實例
+        """
         self.config_manager = config_manager
+        self.log_manager = log_manager
+        self.date_calculation_service = DateCalculationService(config_manager, log_manager)
 
     def process_flight_tasks(self) -> List[Dict]:
         """
@@ -14,7 +34,7 @@ class FlightTasksFixedMonthProcessors:
 
         返回:
             List[Dict]: 處理後的 API 任務列表
-            範例格式
+            範例格式:
             [
                 {
                     'name': '範例：台北到新加坡...',
@@ -32,39 +52,58 @@ class FlightTasksFixedMonthProcessors:
         """
         fixed_month_task_list = self._get_fixed_month_task_list()
         processed_flight_tasks = []
-        current_date = datetime.now()
 
         for task in fixed_month_task_list:
-            processed_task = self._process_single_task(task, current_date)
+            processed_task = self._process_single_task(task)
             if processed_task:
                 processed_flight_tasks.append(processed_task)
             
         return processed_flight_tasks
 
-    def _process_single_task(self, task: Dict, current_date: datetime) -> Dict:
-        """處理單個固定月份任務"""
+    def _process_single_task(self, task: Dict) -> Optional[Dict]:
+        """
+        處理單個固定月份任務
+        
+        透過日期計算服務獲取日期資訊，並構建完整的任務參數。
+        
+        參數:
+            task (Dict): 原始任務配置
+            
+        返回:
+            Optional[Dict]: 處理後的任務字典，如果處理失敗則返回 None
+        """
         api_params_template = task.get("api_params")
         if not api_params_template:
+            self.log_manager.log_warning(f"任務 '{task.get('name')}' 缺少 api_params，跳過處理")
             return None
 
+        # 從配置中提取參數
         month_offset = api_params_template.get("Month", 0)
-        target_year = current_date.year
-        target_month = current_date.month + month_offset
-
-        while target_month > 12:
-            target_month -= 12
-            target_year += 1
-            
-        days_in_month = calendar.monthrange(target_year, target_month)[1]
-        
         dep_day = int(api_params_template.get("DepDate1", 1))
         return_day = int(api_params_template.get("DepDate2", 1))
         
-        dep_day = min(dep_day, days_in_month)
-        return_day = min(return_day, days_in_month)
-            
-        dep_date_str = f"{target_year}-{target_month:02d}-{dep_day:02d}"
-        return_date_str = f"{target_year}-{target_month:02d}-{return_day:02d}"
+        # 呼叫日期計算服務
+        date_info = self.date_calculation_service.calculate_dates(
+            month_offset=month_offset,
+            dep_day=dep_day,
+            return_day=return_day
+        )
+        
+        if not date_info:
+            self.log_manager.log_error(
+                f"任務 '{task.get('name')}' 日期計算失敗，跳過處理"
+            )
+            return None
+        
+        # 從 API 響應中提取日期
+        dep_date_str = date_info.get("departure_date")
+        return_date_str = date_info.get("return_date")
+        
+        if not dep_date_str or not return_date_str:
+            self.log_manager.log_error(
+                f"任務 '{task.get('name')}' 日期計算響應缺少必要欄位"
+            )
+            return None
 
         # 創建一個新的 api_params 字典，避免修改原始配置
         final_api_params = copy.deepcopy(api_params_template)
@@ -104,6 +143,10 @@ class FlightTasksFixedMonthProcessors:
             "name": f"{dep_city}到{arr_city} {dep_date_str}出發 {return_date_str}回程",
             "api_params": final_api_params
         }
+        
+        self.log_manager.log_info(
+            f"成功處理任務: {processed_task['name']}"
+        )
         
         return processed_task
 

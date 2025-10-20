@@ -18,6 +18,13 @@ api:
     sec-fetch-mode: "cors"
     sec-fetch-site: "same-origin"
 
+# 日期計算 API 設置
+date_calculation_api:
+  base_url: "https://domanda-get-date-data-934329676269.asia-east1.run.app"
+  timeout: 10
+  endpoints:
+    calculate_dates: "/calculate_dates"
+    calculate_holiday_dates: "/calculate_holiday_dates"
 
 # 重試策略
 retry:

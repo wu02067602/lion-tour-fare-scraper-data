@@ -102,9 +102,21 @@ class DateCalculationService:
                 result = response.json()
                 if result.get('success'):
                     data = result.get('data', {})
+                    
+                    # 驗證必要欄位是否存在
+                    departure_date = data.get('departure_date')
+                    return_date = data.get('return_date')
+                    
+                    if departure_date is None or return_date is None:
+                        self.log_manager.log_error(
+                            f"日期計算 API 回傳資料不完整: departure_date={departure_date}, "
+                            f"return_date={return_date}"
+                        )
+                        return None
+                    
                     self.log_manager.log_info(
-                        f"成功獲取日期計算結果: 出發日期={data.get('departure_date')}, "
-                        f"回程日期={data.get('return_date')}"
+                        f"成功獲取日期計算結果: 出發日期={departure_date}, "
+                        f"回程日期={return_date}"
                     )
                     return data
                 else:
@@ -187,9 +199,22 @@ class DateCalculationService:
                 result = response.json()
                 if result.get('success'):
                     data = result.get('data', {})
-                    holidays_count = len(data.get('holidays', []))
+                    
+                    # 驗證必要欄位是否存在
+                    target_year = data.get('target_year')
+                    target_month = data.get('target_month')
+                    holidays = data.get('holidays', [])
+                    
+                    if target_year is None or target_month is None:
+                        self.log_manager.log_error(
+                            f"節日日期計算 API 回傳資料不完整: target_year={target_year}, "
+                            f"target_month={target_month}"
+                        )
+                        return None
+                    
+                    holidays_count = len(holidays)
                     self.log_manager.log_info(
-                        f"成功獲取節日日期計算結果: 目標年月={data.get('target_year')}-{data.get('target_month'):02d}, "
+                        f"成功獲取節日日期計算結果: 目標年月={target_year}-{target_month:02d}, "
                         f"節日數量={holidays_count}"
                     )
                     return data
